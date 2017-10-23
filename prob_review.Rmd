@@ -1,0 +1,148 @@
+---
+title: "Probability and Linear Algebra Review"
+author: "Eric Bridgeford"
+date: "October 23, 2017"
+output: html_document
+header-includes:
+   - \usepackage{amsmath}
+   - \usepackage{amsfonts}
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+# Random Variable
+
+\begin{align*}
+X: \Omega \rightarrow E
+\end{align*}
+
++ variable whose outcomes occur as a result of random phenomenon
+    + Example: flipping a coin can be modeled with a bernoulli random variable (more on that in a second)
++ $\Omega$ represents the domain that the variable can occupy: set of possible outcomes in our probability space
++ $E$ represents the range that the variable can occupy: usually probabilities
++ parametric RV: distribution of the random variable can be PARAMETRIZED by a fixed set $\theta$
+    + written $X \sim dist(\theta)$ for distribution $dist$
+    + $p(x \in X | \theta)$, that is, the distribution is a function of $x$ and the parameters $\theta$
+    + Example: normal distribution: $X \sim \mathcal{N}(\mu, \sigma^2)$
+
+## Moments
++ a statistic that gives information about the "shape" of a set of points
++ first moment: mean (what is the center of the points?) $\mathbb{E}X$
++ second moment: rotational inertia (how clustered about the mean are the points?) $\mathbb{E}X^2$
++ definition:
+    + discrete: $\mathbb{E}X^n = \sum_{i=1}^k p_X\left(x_i\right)x_i^n$ where $x_i$s are our possible outcomes
+    + continuous $\mathbb{E}X^n = \int_{i=-\infty}^\infty p_X(x)x^n dx$
++ these will be vital for our understanding of analytical understanding of MLE in later steps
+    + analytical: we have descriptions of characteristics of the data itself $a-priori$ (know them ahead of time)
+    + empirical: we have observations of data, and need to estimate characteristics of the data
+
+## Likelihood
++ gives understanding of the fit of data to the parameters of a statistical model
+\begin{align*}
+  L(x | \theta) = \prod_{i=1}^n p(x_i | \theta)
+\end{align*}
++ where $p(x_i)$ is the probability of a given item $x_i$ given our parameters $\theta$
++ Interesting observation: taking the log of the likelihood will give something that will preserve the form of the likelihood
+    + log function is always increasing: "monotonicity"
+    + if $A > B$, then $log(A) > log(B)$ due to $log$ being monotonic
+    + if we optimize something over $log(f(\cdot))$, we have also optimized for $f(\cdot)$
+    + idea: if $x'$ is the best solution of $f(x)$, then $log(f(x'))$ will still be the best solution for $log(f(x))$
++ Gives rise to the log-likelihood, which has a much simpler form:
+
+\begin{align*}
+   log\left(L(x | \theta)\right) = \sum_{i=1}^n log\left(p(x_i | \theta)\right)
+\end{align*}
+
+## Estimation
+
++ estimator: rule for calculating an estimate of some quantity on empirical (observed) data
++ motivation: we will virtually never have our parameters $\theta$ $a-priori$
+    + but, we will have observations of the data, which should mean we can obtain the parameters given enough observations
+    
+### Maximum Likelihood Estimation (MLE)
++ goal: $\hat{\theta} = \textrm{argmax}_{\theta} L(x | \theta)$ where $x = \{x_i\}_{i=1}^n$ are our $n$ data observations
++ use monotonicity: $\hat{\theta} = \textrm{argmax}_{\theta} log\left(L(x | \theta)\right)$
++ use calculus: $\hat{\theta}_j := \frac{\delta\, log\left(L(x | \theta)\right)}{\delta \theta_j} = 0$
++ use this when you have empirical data and want to apply a given model to it
+
+## Discrete RV
++ $|\Omega| = C$; that is, the space of possible values is finite
+    + $|\{\cdot\}|$ means the cardinality of the set: the number of elements the set $\{\cdot\}$ contains
+
+### Bernoulli RV
+\begin{align*}
+X &\sim Bern(p) \\
+X&: \Omega=\{0, 1\} \rightarrow E=\mathbb{R} \\
+p(x \in \Omega) &= 
+\begin{cases}
+	p & x = 1 \\
+    (1-p) & x=0
+\end{cases} \\
+p(x \in \Omega) &= p^x(1-p)^{1 - x}
+\end{align*}
+
++ our probability space has 2 elements here: x can take either $0$ or $1$, 2 DISCRETE possibilities
++ Definition of Bernoulli RV tells us the probability mass function (pmf) $p(x)$ for $x \in \Omega$
++ $\hat{p} = \hat{p}(x = 1) = \mathbb{E}X = 0 p(x = 0) + 1 p(x = 1)$
+    + $\hat{\cdot}$ means the estimator of $\cdot$: 
+    + note that $x_0$ = 0: so $\hat{p} = p(x = 1)$
++ Likelihood model
+\begin{align*}
+  L(x | p) &= \prod_{i=1}^n p(x_i | p) \\
+  &= \prod_{i=1}^n p^{x_i}(1-p)^{1-x_i} \\
+  &= p^{\sum_{i=1}^n x_i} (1-p)^{n - \sum_{i=1}^n x_i} \\
+  log(L(x | p)) &= \left(\sum_{i=1}^n x_i\right) log(p) + \left(n - \sum_{i=1}^n(x_i)\right) log(1-p)
+\end{align*}
++ use MLE as above for each of our parameters $\theta = \{p\}$
+\begin{align*}
+  \frac{\delta log(L(x | p))}{\delta p} &= \frac{\left(\sum_{i=1}^n x_i\right)}{p} - \frac{\left(n - \sum_{i=1}^n(x_i)\right)}{1-p} = 0 \\
+  \sum_{i=1}^n x_i - p\sum_{i=1}^n x_i &= np - p\sum_{i=1}^n x_i \\
+  \hat{p} &= \frac{\sum_{i=1}^n x_i}{n}
+\end{align*}
+
+In the below code-snippet, we check for convergence: does the probability of obtaining outcome $1$ actually approach $p$ as our number of samples increases?
+
+```{r}
+require(ggplot2)
+library(latex2exp)
+
+sim.bern <- function(p, n=1) {
+  # get a uniform RV from 0 to 1 (every value has the same probability)
+  # this means that numbers between 0 and p occur with probability p, and numbers from p to 1 occur with probability (1-p)
+  # which is exactly the definition of our bernoulli RV
+  # if runif(1) which is 1 sample from uniform RV on range 0 to 1 is less than p, return 1, else 0
+  return(replicate(n, ifelse(runif(1) <= p, 1, 0)))
+}
+
+maxn = 1000
+# define a range of ns from 10 to 10^3 in logarithmic spacing
+ns = round(10^seq(1, log10(maxn), length=10))
+
+ps = seq(.1, .9, length.out=9)
+# initialize where the result will be stored
+empty_ar = array(NaN, dim=c(length(ns)*length(ps)))
+results <- data.frame(n = empty_ar, er = empty_ar, p=empty_ar)
+nsim = 100  # number of simulations per number of empirical samples
+
+for (i in 1:length(ns)) {
+  for (j in 1:length(ps)) {
+    # ns[i] is the number of empirical samples on a given iteration
+    # replicate(nsim, ...) repeats ... nsim times
+    # sim.bern(ptru, n=ns[i]) simulates ns[i] bernoulli RVs
+    # sum(sim.bern(ptru, n=ns[i]))/ns[i] is our estimator of p defined above
+    res <-  mean(abs(ps[j] - replicate(nsim, sum(sim.bern(ps[j],  n=ns[i])/ns[i]))))
+    results[i + (j-1)*length(ps),] <- data.frame(n = ns[i], er=res, p=ps[j])
+  }
+}
+
+results$p = factor(results$p)
+ggplot(data=results, aes(x=n, y=er, group=p, color=p)) +
+  geom_line() +
+  ggtitle(TeX('Analyzing convergence of MLE for Bernoulli RV')) +
+  xlab('Number of Empirical Samples') +
+  ylab(TeX('mean $\\left|p_{true} - \\hat{p}\\right|$ over 100 simulations'))
+```
+
