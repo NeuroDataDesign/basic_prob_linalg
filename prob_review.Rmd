@@ -35,9 +35,8 @@ X: \Omega \rightarrow E
 + definition:
     + discrete: $\mathbb{E}X^n = \sum_{i=1}^k p_X\left(x_i\right)x_i^n$ where $x_i$s are our possible outcomes
     + continuous $\mathbb{E}X^n = \int_{i=-\infty}^\infty p_X(x)x^n dx$
-+ these will be vital for our understanding of analytical understanding of MLE in later steps
++ these will be vital for our understanding of analytical understanding of parameter estimates in later steps
     + analytical: we have descriptions of characteristics of the data itself $a-priori$ (know them ahead of time)
-    + empirical: we have observations of data, and need to estimate characteristics of the data
 
 ## Likelihood
 + gives understanding of the fit of data to the parameters of a statistical model
@@ -117,6 +116,7 @@ sim.bern <- function(p, n=1) {
   return(replicate(n, ifelse(runif(1) <= p, 1, 0)))
 }
 
+
 maxn = 1000
 # define a range of ns from 10 to 10^3 in logarithmic spacing
 ns = round(10^seq(1, log10(maxn), length=10))
@@ -133,8 +133,10 @@ for (i in 1:length(ns)) {
     # replicate(nsim, ...) repeats ... nsim times
     # sim.bern(ptru, n=ns[i]) simulates ns[i] bernoulli RVs
     # sum(sim.bern(ptru, n=ns[i]))/ns[i] is our estimator of p defined above
-    res <-  mean(abs(ps[j] - replicate(nsim, sum(sim.bern(ps[j],  n=ns[i])/ns[i]))))
-    results[i + (j-1)*length(ps),] <- data.frame(n = ns[i], er=res, p=ps[j])
+    dat <-  replicate(nsim, sim.bern(ps[j],  n=ns[i]))
+    er <- mean(abs(ps[j] - apply(dat, 2, sum)/ns[i]))
+    
+    results[i + (j-1)*length(ps),] <- data.frame(n = ns[i], er=er, p=ps[j])
   }
 }
 
@@ -143,6 +145,6 @@ ggplot(data=results, aes(x=n, y=er, group=p, color=p)) +
   geom_line() +
   ggtitle(TeX('Analyzing convergence of MLE for Bernoulli RV')) +
   xlab('Number of Empirical Samples') +
-  ylab(TeX('mean $\\left|p_{true} - \\hat{p}\\right|$ over 100 simulations'))
+  ylab(TeX('mean $\\left|p - \\hat{p}\\right|$ over 100 simulations'))
 ```
 
